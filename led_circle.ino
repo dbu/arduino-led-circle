@@ -4,16 +4,12 @@
  * SD (green or red) = SPI data (master to slave, MOSI), pin 11
  * GND (blue) = Ground
  *
- * on mega: CK 52, SD 51
- *
  * various states, one is used as main state.
  *
  * each state has 3 phases: intro, main, fadeout
  *
  * fade over between states: while current_state is in phase intro, just draw particles.
  * once its in main, draw both particle and background.
- *
- * seeeduino mega = ATmega1280, otherwise ATmega328
  */
 
 //#define DEBUG
@@ -24,26 +20,13 @@
 #include <math.h>
 #include "State.h"
 
-//#define MATRIX
-#define WALL
-
-#ifdef MATRIX
-  /*** configuration ***/
-  // strip length
-  #define LENGTH 16
-  // number of strips
-  #define STRIPS 10
-#else
-  #ifdef WALL
-    #define LENGTH 144
-    #define STRIPS 1
-  #else
-    #define LENGTH 156
-    #define STRIPS 1
-  #endif
-#endif
+// strip length
+#define LENGTH 16
+// number of strips
+#define STRIPS 1
 
 #define SPEED_PIN A0
+#define INTENSITY_PIN A1
 #define MODE_PIN 4
 
 /*** general variables ***/
@@ -56,6 +39,7 @@ struct CRGB *leds;
 #define STATE_RAINBOW 5
 #define STATE_BLINK 6
 #define STATE_LIGHTNING 7
+#define STATE_AMBIENT 8
 #define STATE_COLOR 99
 
 #define PHASE_INTRO 1
@@ -66,13 +50,11 @@ struct CRGB *leds;
 
 IState* current_state, *extra_state, *old_state, *old_extra_state;
 
-
 unsigned long state_start;
-unsigned int state_duration = 60*1000; //could be controlled
+unsigned int state_duration = 30*1000; //for random mode
 unsigned long frame_start;
 /** how long one frame should take, in milliseconds. controlled with potentiometer */
 byte frame_duration = 30;
-
 
 /*** flares *****/
 #include "StateFlare.h"
@@ -120,6 +102,9 @@ CStateLightning StateLightning((CRGB) {255,255,255});
 #include "StateColor.h"
 CStateColor StateColor((CRGB) {17, 255, 88});
 
+#include "StateAmbient.h"
+CStateAmbient StateAmbient;
+
 void setup()
 {
     #ifdef WALL
@@ -140,24 +125,11 @@ void setup()
 
     state_start = millis();
 
-    #ifdef MATRIX
-        current_state = & StateGreen;
-        current_state->setPhase(PHASE_INTRO);
-        extra_state = & StateGreenExtra;
-
-        extra_state->setPhase(PHASE_EXTRA);
-    #else
-      #ifdef WALL
-        current_state = & StateGreen;
-        current_state->setPhase(PHASE_INTRO);
-        extra_state = & StateGreenExtra;
-
-        extra_state->setPhase(PHASE_EXTRA);
-      #else
-        current_state = &StateColor;
-        current_state->setPhase(PHASE_INTRO);
-      #endif
-    #endif
+    current_state = & StateGreen;
+    current_state->setPhase(PHASE_INTRO);
+    extra_state = & StateGreenExtra;
+    
+    extra_state->setPhase(PHASE_EXTRA);
 
     Serial.begin(9600);
     Serial.println("STARTUP");
@@ -225,14 +197,13 @@ void stateCheck()
         old_state = current_state;
         old_extra_state = extra_state;
 
-        #ifdef WALL
           if (digitalRead(MODE_PIN)) {
-              if (current_state == &StateGreen) {
+              if (current_state == &StateAmbient) {
                   // no need to change
                   return;
               }
-              current_state = &StateGreen;
-              extra_state = &StateGreenExtra;
+              current_state = &StateAmbient;
+              extra_state = NULL;
           } else {
               if (&StateGreen == current_state) {
                   current_state = &StateLightning;
@@ -254,27 +225,6 @@ void stateCheck()
                   extra_state = &StateGreenExtra;
               }
           }
-        #else
-          if (&StateGreen == current_state) {
-              current_state = &StateFlareup;
-              extra_state = &StateFlareupExtra;
-          } else if (&StateFlareup == current_state) {
-              current_state = &StateBlink;
-              extra_state = NULL;
-          } else if (&StateBlink == current_state) {
-              current_state = &StateGlimmer;
-              extra_state = &StateGlimmerExtra;
-          } else if (&StateGlimmer == current_state) {
-              current_state = &StateFlare;
-              extra_state = &StateFlareExtra;
-          } else if (&StateFlare == current_state) {
-              current_state = &StateRainbow;
-              extra_state = NULL;
-          } else { //(&StateRainbow == current_state)
-              current_state = &StateGreen;
-              extra_state = &StateGreenExtra;
-          }
-        #endif
 
         old_state->setPhase(PHASE_FADEOUT);
         if (old_extra_state != NULL) {
@@ -317,12 +267,6 @@ void readDuration()
     #endif
 }
 
-/** seems we can mess up function stack, try to print each loop something
-void heartbeat()
-{
-//    DEBUG_PRINT("Babump");
-}
-*/
 extern unsigned int __bss_end;
 extern unsigned int __heap_start;
 extern void *__brkval;

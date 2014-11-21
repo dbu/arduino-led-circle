@@ -1,10 +1,6 @@
-This [Arduino](http://www.arduino.cc/) project uses my [LedMatrix](https://github.com/dbu/arduino-LedMatrix) library wrapping [FastSPI_LED](http://code.google.com/p/fastspi/) to have a colorful light globe from individually controllable RGB LEDs.
-
-See this in action with some [movies in my blog post](http://davidbu.ch/mann/blog/2012-01-25/colorful-globe-ws2801-led-strip.html)
+This [Arduino](http://www.arduino.cc/) project uses my [LedMatrix](https://github.com/dbu/arduino-LedMatrix) library wrapping [FastSPI_LED](http://code.google.com/p/fastspi/) to do colorful effects on a strip of individually controllable RGB LEDs.
 
 If you want to make this work, you probably need to adjust the code a bit to your situation.
-
-[![screenshot](http://davidbu.ch/mann/sites/davidbu.ch/files/imagecache/medium/2012/01/A%20colorful%20globe%20with%20the%20WS2801%20LED%20strip/dsc_0029.jpg)](http://davidbu.ch/mann/blog/2012-01-25/colorful-globe-ws2801-led-strip.html)
 
 # License
 
